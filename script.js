@@ -89,12 +89,16 @@ const getCountryData = async (countryCode) => {
  */
 const getStatistic = async (continent, info) => {
   const countriesCode = await getCountriesCode(continent);
-  const statistic = {labels: [], data: []};
+  const statistic = {labels: [], deaths: [], recovered: []};
+ 
   for (const countryCode of countriesCode ) {
     const country = await getCountryData(countryCode);
+    
     statistic.labels.push(country.data.name);
-    statistic.data.push(country.data.latest_data[info]);
+    statistic.deaths.push(country.data.latest_data[info]);
+    statistic.recovered.push(country.data.latest_data.recovered);
   }
+  console.log(statistic);
   return statistic;
 }
 
@@ -107,43 +111,42 @@ const testBtn = document.querySelector('.btn');
 testBtn.addEventListener('click', handleClick);
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// var ctx = document.getElementById('chart').getContext('2d');
-// var chart = new Chart(ctx, {
-//     // The type of chart we want to create
-//     type: 'line',
-
-//     // The data for our dataset
-//     data: {
-//         labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-//         datasets: [{
-//             label: 'My First dataset',
-//             backgroundColor: 'rgb(255, 99, 132)',
-//             borderColor: 'rgb(255, 99, 132)',
-//             data: [0, 10, 5, 2, 20, 30, 45]
-//         }]
-//     },
-
-//     // Configuration options go here
-//     options: {}
-// });
 
 const displayInCart = (statistic) => {
 
   console.log(statistic);
   
-  var data = {
-    labels: statistic.labels, // Country name arr
-    datasets: [{
-      label: "Dataset #1",
-      backgroundColor: "rgba(255,99,132,0.2)",
-      borderColor: "rgba(255,99,132,1)",
-      borderWidth: 2,
-      hoverBackgroundColor: "rgba(255,99,132,0.4)",
-      hoverBorderColor: "rgba(255,99,132,1)",
-      data: statistic.data, // num of case arr
-    }]
-  };
+  // var data = {
+  //   labels: statistic.labels, // Country name arr
+  //   datasets: 
+  //   [
+  //     {
+  //       label: "Dataset #1",
+  //       // backgroundColor: "rgba(255,99,132,0.2)",
+  //       // borderColor: "rgba(255,99,132,1)",
+  //       // borderWidth: 2,
+  //       // hoverBackgroundColor: "rgba(255,99,132,0.4)",
+  //       // hoverBorderColor: "rgba(255,99,132,1)",
+  //       data: statistic.data, // num of case arr
+  //     }
+  //   ]
+  // };
+
+ const data =  {
+    datasets: 
+    [
+      {
+        label: 'Deaths',
+        data: statistic.deaths
+      }, 
+      {
+        label: 'Recovered',
+        data: statistic.recovered,
+        type: 'line' // Changes this dataset to become a line
+      }
+    ],
+    labels: statistic.labels
+}
   
   var options = {
     maintainAspectRatio: false,
