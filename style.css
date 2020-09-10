@@ -9,3 +9,14 @@
 body {
   background-color: #FECA1D;
 }
+
+.chart-container {
+  position: relative;
+  margin: 20px auto;
+  height: 80vh;
+  width: 85vw;
+  background-color: white;
+}
+.chart{
+  border: 5px solid black;
+}
