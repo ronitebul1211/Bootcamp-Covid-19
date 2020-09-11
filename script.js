@@ -42,12 +42,14 @@
 
  //fetch -> by country -> country statistic
  
-
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Fetch Data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  const fetchData = async (url) => {
   let data;
   try {
     const response = await fetch(url);
-    data = response.json()
+    if(response.ok){
+      data = response.json()
+    }
   } catch(error) {
     //throw exception only in network issue
     console.log(error);
@@ -81,38 +83,109 @@ const getCountryData = async (countryCode) => {
   return countryData;
 };
 
+//TODO CHANGE DOC
 /**
- * 
  * @param {string} continent - values: Asia / Europe / Americas / Africa 
  * @param {string} info - values: deaths / confirmed / recovered / critical
- * @return {object} statistic - contain labels array & data array to display in chart
+ * @return {object} statistic - contain labels array & data array to display in Graph
  */
-const getStatistic = async (continent, info) => {
+const getStatistic = async (continent) => {
+  
   const countriesCode = await getCountriesCode(continent);
-  const statistic = {labels: [], deaths: [], recovered: []};
+  const statistic = {labels:[], confirmed:[], recovered:[], critical:[], deaths:[]};
  
   for (const countryCode of countriesCode ) {
-    const country = await getCountryData(countryCode);
-    
-    statistic.labels.push(country.data.name);
-    statistic.deaths.push(country.data.latest_data[info]);
-    statistic.recovered.push(country.data.latest_data.recovered);
+    const countryJson = await getCountryData(countryCode);
+    if (typeof countryJson !== 'undefined' ){ 
+      const countryData = countryJson.data;
+      const latestData = countryData.latest_data;
+      //Create Statistic object
+      statistic.labels.push(countryData.name);
+      statistic.confirmed.push(latestData.confirmed);
+      statistic.recovered.push(latestData.recovered);
+      statistic.critical.push(latestData.critical);
+      statistic.deaths.push(latestData.deaths);
+    } 
   }
-  console.log(statistic);
   return statistic;
 }
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - State - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const CONTINENTS = ['Asia', 'Europe', 'Americas', 'Africa'];
+let isFetchingData = false;
+// let currentContinent = 
+// {
+//    countries: 
+//   [
+//     {
+//       code:'IL',
+//       name: 'Israel',
+//       confirmed: 50000,
+//       recovered: 2000,
+//       critical: 45,
+//       deaths: 1000,
+//       newCases: 56,
+//       newDeaths: 4
+//     },
+//     {
+//       code:'LI',
+//       name: 'Levanun',
+//       confirmed: 50000,
+//       recovered: 2000,
+//       critical: 45,
+//       deaths: 1000,
+//       newCases: 56,
+//       newDeaths: 4
+//     },
+//     {
+//       code:'SR',
+//       name: 'Suria',
+//       confirmed: 50000,
+//       recovered: 2000,
+//       critical: 45,
+//       deaths: 1000,
+//       newCases: 56,
+//       newDeaths: 4
+//     },
+//   ],
+//   getCountriesLabel: function() {
+//     this.countries.forEach(country => console.log(country.name))
+//   }
 
-const handleClick = async() => {
- const statistic = await getStatistic('Asia', 'deaths');
- displayInCart(statistic);
+// }
+
+
+  
+
+
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - UI - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const handleContinentClick = async(continentIndex) => {
+  if(!isFetchingData){
+   
+    isFetchingData = true;
+    
+    const statistic = await getStatistic(CONTINENTS[continentIndex]);
+    displayInGraph(statistic);
+    
+    isFetchingData = false;  
+  }
+ }
+
+//TODO : init continents container
+const initContinentSelectorUI = () => {
+  const continentsContainerEl = document.querySelector('.continents-container');
+  CONTINENTS.forEach((continent, index) => {
+    const continentBtnEl = document.createElement('button');
+    continentBtnEl.textContent = continent;
+    continentsContainerEl.appendChild(continentBtnEl);
+    continentBtnEl.addEventListener('click',() => handleContinentClick(index));
+  });
 }
-
-const testBtn = document.querySelector('.btn');
-testBtn.addEventListener('click', handleClick);
+initContinentSelectorUI();
 
 
 
-const displayInCart = (statistic) => {
+
+const displayInGraph = (statistic) => {
 
   console.log(statistic);
   
@@ -136,13 +209,42 @@ const displayInCart = (statistic) => {
     datasets: 
     [
       {
-        label: 'Deaths',
-        data: statistic.deaths
-      }, 
+        label: 'Confirmed',
+        data: statistic.confirmed,
+        borderColor: "rgb(255,188,128)",  //Orange
+        pointBackgroundColor:"rgb(255,188,128)",
+        pointBorderColor:"black",
+        fill: false,
+        type: 'line'
+      },
       {
+        
         label: 'Recovered',
         data: statistic.recovered,
-        type: 'line' // Changes this dataset to become a line
+        borderColor: "rgb(152,255,178)", //Mint
+        pointBackgroundColor:"rgb(152,255,178)",
+        pointBorderColor:"black",
+        fill: false,
+        fill: false,
+        type: 'line'
+      },
+      {
+        label: 'Critical',
+        data: statistic.critical,
+        borderColor: "rgb(255,204,206)", //Pink
+        pointBackgroundColor:"rgb(255,204,206)",
+        pointBorderColor:"black",
+        fill: false,
+        type: 'line'
+      }, 
+      {
+        label: 'Deaths',
+        data: statistic.deaths,
+        borderColor: "rgb(228,204,255)", //Purple
+        pointBackgroundColor:"rgb(228,204,255)",
+        pointBorderColor:"black",
+        fill: false,
+        type: 'line' 
       }
     ],
     labels: statistic.labels

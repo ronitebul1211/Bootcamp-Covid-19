@@ -10,13 +10,29 @@ body {
   background-color: #FECA1D;
 }
 
-.chart-container {
-  position: relative;
-  margin: 20px auto;
-  height: 80vh;
+.main-container{
   width: 85vw;
-  background-color: white;
+  background-color: pink;
+  margin: 50px auto;
 }
-.chart{
-  border: 5px solid black;
+
+.chart-container {
+  position: relative; /*Chart request*/
+  height: 75vh;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #fbfad4;
+}
+.continents-container{
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #fbfad4;
+}
+.countries-container{
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #fbfad4;
 }
