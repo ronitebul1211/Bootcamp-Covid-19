@@ -42,8 +42,13 @@
 
  //fetch -> by country -> country statistic
  
-//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Fetch Data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- const fetchData = async (url) => {
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  Data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** 
+ * Fetch Utility
+ * @param {string} - url to fetch data
+ * @return {object} - represent response data structure
+ */ 
+const fetchData = async (url) => {
   let data;
   try {
     const response = await fetch(url);
@@ -59,118 +64,177 @@
  };
 
 /**
- * @param {string} continent - values: Asia / Europe / Americas / Africa 
+ * @param {string} continent - from CONTINENTS array 
  * @return {array} - countries code in ISO 3166-1 alpha-2 format
  */
-const getCountriesCode = async (continent) => {
+const fetchCountriesCode = async (continent) => {
   const proxy = 'https://api.allorigins.win/raw?url=';
   const baseUrl = 'https://restcountries.herokuapp.com/api/v1/region/'
   const countriesData = await fetchData(`${proxy}${baseUrl}${continent}`);
   const countriesCode = [];
-  countriesData.forEach(country => {
-    countriesCode.push(country.cca2);
-  });
+  countriesData.forEach(country => countriesCode.push(country.cca2));
   return countriesCode;
 };
 
 /**
  * @param {string} - countryCode: in ISO 3166-1 alpha-2 format
- * @return {object} - data of specific country
+ * @return {object / undefined} - Country Object: code, name, confirmed, recovered, critical, deaths, newCases, newDeaths
  */
-const getCountryData = async (countryCode) => {
+const fetchCountry = async (countryCode) => {
   const baseUrl = ' https://corona-api.com/countries/'
   const countryData = await fetchData(`${baseUrl}${countryCode}`);
-  return countryData;
+ 
+  let country;
+  if(typeof countryData !== 'undefined'){
+      country = {
+      code: countryCode,
+      name: countryData.data.name,
+      confirmed: countryData.data.latest_data.confirmed,
+      recovered: countryData.data.latest_data.recovered,
+      critical: countryData.data.latest_data.critical,
+      deaths: countryData.data.latest_data.deaths,
+      newCases: countryData.data.today.confirmed,
+      newDeaths: countryData.data.today.deaths,
+    };
+  }
+  return country;
 };
 
-//TODO CHANGE DOC
 /**
- * @param {string} continent - values: Asia / Europe / Americas / Africa 
- * @param {string} info - values: deaths / confirmed / recovered / critical
- * @return {object} statistic - contain labels array & data array to display in Graph
+ * @param {string} continent - from CONTINENTS array 
+ * @return {array} - continent object, consists of countries  their covid19 data
  */
-const getStatistic = async (continent) => {
-  
-  const countriesCode = await getCountriesCode(continent);
-  const statistic = {labels:[], confirmed:[], recovered:[], critical:[], deaths:[]};
- 
+const fetchContinent = async (continent) => {
+  console.log('fetching continent ...');
+  const countriesCode = await fetchCountriesCode(continent);
+  continent = [];
   for (const countryCode of countriesCode ) {
-    const countryJson = await getCountryData(countryCode);
-    if (typeof countryJson !== 'undefined' ){ 
-      const countryData = countryJson.data;
-      const latestData = countryData.latest_data;
-      //Create Statistic object
-      statistic.labels.push(countryData.name);
-      statistic.confirmed.push(latestData.confirmed);
-      statistic.recovered.push(latestData.recovered);
-      statistic.critical.push(latestData.critical);
-      statistic.deaths.push(latestData.deaths);
-    } 
+    const country = await fetchCountry(countryCode);
+    if(typeof country !== 'undefined'){
+      continent.push(country);
+    }
   }
+  return continent;
+}
+
+/**
+ * @param {string} continent - from CONTINENTS array 
+ * @return {object} statistic - contain arrays labels (country name) and datasets (confirmed, recovered, critical, deaths) to display in Graph
+ */
+const getStatistics = (continent) => {
+  const statistic = {labels:[], confirmed:[], recovered:[], critical:[], deaths:[]};
+
+  continent.forEach(country => {
+    statistic.labels.push(country.name);
+    statistic.confirmed.push(country.confirmed);
+    statistic.recovered.push(country.recovered);
+    statistic.critical.push(country.critical);
+    statistic.deaths.push(country.deaths);
+  });
   return statistic;
 }
+
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - State - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const CONTINENTS = ['Asia', 'Europe', 'Americas', 'Africa'];
 let isFetchingData = false;
-// let currentContinent = 
-// {
-//    countries: 
-//   [
-//     {
-//       code:'IL',
-//       name: 'Israel',
-//       confirmed: 50000,
-//       recovered: 2000,
-//       critical: 45,
-//       deaths: 1000,
-//       newCases: 56,
-//       newDeaths: 4
-//     },
-//     {
-//       code:'LI',
-//       name: 'Levanun',
-//       confirmed: 50000,
-//       recovered: 2000,
-//       critical: 45,
-//       deaths: 1000,
-//       newCases: 56,
-//       newDeaths: 4
-//     },
-//     {
-//       code:'SR',
-//       name: 'Suria',
-//       confirmed: 50000,
-//       recovered: 2000,
-//       critical: 45,
-//       deaths: 1000,
-//       newCases: 56,
-//       newDeaths: 4
-//     },
-//   ],
-//   getCountriesLabel: function() {
-//     this.countries.forEach(country => console.log(country.name))
-//   }
+let currentContinent = [];
 
-// }
 
 
   
 
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - UI - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/**
+ * HANDLER - when user select continent display data graph + list of corresponding countries 
+ * @param {number} continentIndex - index of the selected continent in CONTINENT array 
+ */
 const handleContinentClick = async(continentIndex) => {
   if(!isFetchingData){
    
+    //Fetching State START ...
     isFetchingData = true;
     
-    const statistic = await getStatistic(CONTINENTS[continentIndex]);
-    displayInGraph(statistic);
+    //Set state -> Continent Data
+    currentContinent = await fetchContinent(CONTINENTS[continentIndex]);
+
+    console.log(currentContinent);
+    //Display Graph
+    displayInGraph(getStatistics(currentContinent));
     
+    //Display Countries List
+    displayCountriesList();
+
+    
+    //Fetching State END ...
     isFetchingData = false;  
   }
  }
 
-//TODO : init continents container
+ const handleCountryHover =  (event, countryCode) => {
+   //Create info
+   const infoEL = document.createElement('div');
+   infoEL.classList.add('country-info');
+   //Create graph
+   const doughnutContainerEl = document.createElement('div');
+   doughnutContainerEl.classList.add('doughnut-container');
+   const doughnutGraphEl = document.createElement('canvas');
+   doughnutGraphEl.id = 'pie-graph';
+   const countryEl = event.currentTarget;
+   infoEL.appendChild(doughnutContainerEl);
+   doughnutContainerEl.appendChild(doughnutGraphEl);
+   countryEl.appendChild(infoEL);  
+   //Get current country index
+   console.log(currentContinent.findIndex(country => country.code === countryCode));
+   console.log(currentContinent[5]);
+   const countryData = currentContinent[currentContinent.findIndex(country => country.code === countryCode)];
+   displayPieGraph(countryData);
+   //Create Text
+   const textString = 
+          ` <div>Confirmed: ${countryData.confirmed}</div>
+            <div>Critical: ${countryData.critical}</div>
+            <div>Recovered: ${countryData.recovered}</div>
+            <div>Deaths: ${countryData.deaths}</div>
+          `;
+  infoEL.insertAdjacentHTML('beforeend', textString);
+    
+ }
+
+ const  handleCountryOutOfHover = (event) => {
+ 
+   const infoEl = event.currentTarget.querySelector('.country-info');
+   infoEl.remove();
+  
+ }
+
+ const displayPieGraph = (country) => {
+
+  const data = { 
+    labels : [], 
+    datasets : [ 
+      { 
+        data : [country.confirmed], //Confirmed
+        backgroundColor : "rgb(255,188,128)", 
+        title: ["jhjh"]
+      }, 
+      { 
+        data : [country.critical, country.recovered, country.deaths], //critical, recovered, deaths
+        backgroundColor : ['rgb(255,204,206)', 'rgb(152,255,178)', 'rgb(228,204,255)'], 
+      }
+    ]
+  }
+  const options = {
+    borderWidth:0,
+    cutoutPercentage: 25,
+  }
+
+  Chart.Doughnut('pie-graph', {data: data, options: options});
+ }
+
+
+/** 
+ * INIT - Continents selector UI
+ */
 const initContinentSelectorUI = () => {
   const continentsContainerEl = document.querySelector('.continents-container');
   CONTINENTS.forEach((continent, index) => {
@@ -180,31 +244,12 @@ const initContinentSelectorUI = () => {
     continentBtnEl.addEventListener('click',() => handleContinentClick(index));
   });
 }
-initContinentSelectorUI();
 
-
-
-
+/**
+ * Graph - display continents data separate by country in Graph
+ * @param {*} statistic - Datasets: confirmed, recovered, critical, deaths
+ */
 const displayInGraph = (statistic) => {
-
-  console.log(statistic);
-  
-  // var data = {
-  //   labels: statistic.labels, // Country name arr
-  //   datasets: 
-  //   [
-  //     {
-  //       label: "Dataset #1",
-  //       // backgroundColor: "rgba(255,99,132,0.2)",
-  //       // borderColor: "rgba(255,99,132,1)",
-  //       // borderWidth: 2,
-  //       // hoverBackgroundColor: "rgba(255,99,132,0.4)",
-  //       // hoverBorderColor: "rgba(255,99,132,1)",
-  //       data: statistic.data, // num of case arr
-  //     }
-  //   ]
-  // };
-
  const data =  {
     datasets: 
     [
@@ -270,6 +315,52 @@ const displayInGraph = (statistic) => {
   
   Chart.Bar('chart', {options: options, data: data});
 } 
+/**
+ * Graph
+ */
+const displayCountriesList = () => {
+  // Display & Reset (if necessary) Container EL
+  const countriesListContainerEl = document.querySelector('.countries-container');
+  setVisibility(countriesListContainerEl, true);
+  countriesListContainerEl.hasChildNodes() && (countriesListContainerEl.innerHTML ='');
+
+  //Create country EL for country in current continent
+  currentContinent.forEach(country => {
+    //Create Country El
+    const countryEl = document.createElement('div');
+    countryEl.classList.add('country');
+    countryEl.textContent = country.name;
+    countryEl.addEventListener('mouseover', (event) => handleCountryHover(event ,country.code))
+    countryEl.addEventListener('mouseout', (event) => handleCountryOutOfHover(event))
+    
+    //Append to container
+    countriesListContainerEl.appendChild(countryEl);
+  });
+
+  //Append to Main container 
+  const mainContainerEl = document.querySelector('.main-container');
+  mainContainerEl.appendChild(countriesListContainerEl);
+}
+
+/**
+ * Utility - Hide / Show DOM element 
+ * @param {object} - DOM Element
+ * @param {boolean} - true - visible / false - hidden
+ */
+const setVisibility = (element, visibility) => {
+  visibility 
+  ? element.classList.remove('hide') 
+  : element.classList.add('hide')
+};
+/** */
+const isVisible = (element) => element.matches('.hide');
+
+
+
+
+
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - INIT - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+initContinentSelectorUI();
 
 
 
@@ -281,12 +372,3 @@ const displayInGraph = (statistic) => {
 
 
 
-
- 
-
-
-
-//https://restcountries.herokuapp.com/api/v1/region/Asia
-
-// Americas / Asia / Europe / Africa
-// Sub-region: South America / 
